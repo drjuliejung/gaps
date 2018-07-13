@@ -1,0 +1,122 @@
+---
+title: "gaps"
+author: "Julie Jung"
+date: "July 13, 2018"
+output: pdf_document
+---
+
+Data analysis from gap experiment (conducted summer 2017)
+
+```{r}
+setwd('/Volumes/Julie17/gap') 
+```
+
+```{r}
+library(ggplot2)
+library(MASS)
+library(multcomp)
+```
+
+```{r}
+gap.df<-read.csv(file="gap.csv")
+```
+
+```{r}
+ggplot(gap.df, aes(x=as.factor(Gap), y=PropH)) + 
+  geom_boxplot(data=gap.df, size=2) +
+  ylab("Proportion of tray hatched\n")+
+  theme_bw(20) +
+  xlab("\n Gap length (sec)")+
+  theme(legend.position="none")
+
+```
+
+```{r}
+gap.df$Gap<-as.factor(gap.df$Gap)
+lm1<-lm(PropH~Gap, data=gap.df)
+lm2<-glht(lm1, linfct=mcp(Gap="Tukey"))
+summary(lm2)
+cld(lm2) 
+
+```
+
+
+```{r}
+## Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  library(plyr)
+  
+  # New version of length which can handle NA's: if na.rm==T, don't count them
+  length2 <- function (x, na.rm=FALSE) {
+    if (na.rm) sum(!is.na(x))
+    else       length(x)
+  }
+  
+  # This does the summary. For each group's data frame, return a vector with
+  # N, mean, and sd
+  datac <- ddply(data, groupvars, .drop=.drop,
+                 .fun = function(xx, col) {
+                   c(N    = length2(xx[[col]], na.rm=na.rm),
+                     mean = mean   (xx[[col]], na.rm=na.rm),
+                     sd   = sd     (xx[[col]], na.rm=na.rm)
+                   )
+                 },
+                 measurevar
+  )
+  
+  # Rename the "mean" column    
+  datac <- rename(datac, c("mean" = measurevar))
+  
+  datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+  
+  # Confidence interval multiplier for standard error
+  # Calculate t-statistic for confidence interval: 
+  # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+  datac$ci <- datac$se * ciMult
+  
+  return(datac)
+}
+```
+
+
+```{r}
+gapSE <- summarySE(gap.df, measurevar="PropH", groupvars=c("Gap", "AvgStage"), na.rm=T)
+
+ggplot(gapSE, aes(x=as.factor(Gap), y=PropH)) + 
+  geom_boxplot(data=gapSE, size=2) +
+  #geom_errorbar(aes(ymin=PropH-se, ymax=PropH+se), width=.1) +
+  ylab("Proportion of tray hatched\n")+
+  theme_bw(20) +
+  xlab("\n Gap length (sec)")+
+  theme(legend.position="none")
+
+ggplot(gap.df, aes(x=AvgStage, y=PropH)) + 
+  geom_point(data=gap.df, size=3) +
+  ylab("Proportion of tray hatched\n")+
+  theme_bw(20) +
+  xlab("\n Developmental stage")+
+  theme(legend.position="none")
+
+```
+
+
+
+```{r}
+gap0 <- subset(gap.df, Gap == 0)
+gap30 <- subset(gap.df, Gap == 30)
+gap45 <- subset(gap.df, Gap == 45)
+gap60 <- subset(gap.df, Gap == 60)
+```
+
+
+
+```{r}
+
+```
