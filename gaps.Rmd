@@ -8,7 +8,7 @@ output: pdf_document
 Data analysis from gap experiment (conducted summer 2017)
 
 ```{r}
-setwd('/Volumes/Julie17/gap') 
+setwd('/Users/juliejung/Documents/GitHub/gaps') 
 ```
 
 ```{r}
