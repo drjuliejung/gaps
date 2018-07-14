@@ -12,13 +12,160 @@ setwd('/Users/juliejung/Documents/GitHub/gaps')
 ```
 
 ```{r}
+library(R.matlab)
 library(ggplot2)
 library(MASS)
 library(multcomp)
+library("stargazer")
+library("knitr")
+library("dplyr")
+library(sciplot) 
+```
+#trying to read hatching times from .mat files
+
+```{r}
+
+#hatching times for stimulus 16 (control), experiment 1
+hatching_times_16_1 <- readMat("/Users/juliejung/Documents/GitHub/gaps/hatchingtimes(_stimulus_experiment)//hatching_times_16_1.mat")
+
+#hatching times for stimulus 16 (control), experiment 2
+hatching_times_16_2 <- readMat("/Users/juliejung/Documents/GitHub/gaps/hatchingtimes(_stimulus_experiment)//hatching_times_16_2.mat")
+
+#plot
+## this is tricky! --> easier to do in matlab!
+```
+
+#Exps 1-3
+```{r}
+hatching_data<-read.csv(file="hatching_data.csv")
+```
+
+Subset out the test data
+```{r}
+subset_hatching <- subset(hatching_data, hatching_data$Subset.Hatching.Data=="Data")
+str(subset_hatching) 
+
+#subset_hatching_times <- subset(hatching_data, hatching_data$Subset.Hatching.Times.Data=="Data")
+```
+
+Split into Experiments 1-3
+```{r}
+Experiment1 <- subset(hatching_data, hatching_data$Experiment==1)
+Experiment2 <- subset(hatching_data, hatching_data$Experiment==2)
+Experiment3 <- subset(hatching_data, hatching_data$Experiment==3)
+```
+
+
+#Exp 1
+```{r}
+Exp1Table<-
+  Experiment1 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(Exp1Table,title="Mean & SD & SE",digits=4)
 ```
 
 ```{r}
+ggplot(Experiment1, aes(x=as.factor(Stimulus), y=Proportion.Hatched)) + 
+  geom_boxplot(data=Experiment1, size=2) +
+  ylab("Proportion of tray hatched\n")+
+  theme_bw(20) +
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+```{r}
+lm1<-lm(Proportion.Hatched~Stimulus, data=Experiment1)
+lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+summary(lm2)
+cld(lm2) 
+
+```
+
+#Exp 2
+```{r}
+Exp2Table<-
+  Experiment2 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(Exp2Table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+ggplot(Experiment2, aes(x=as.factor(Stimulus), y=Proportion.Hatched)) + 
+  geom_boxplot(data=Experiment2, size=2) +
+  ylab("Proportion of tray hatched\n")+
+  theme_bw(20) +
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+```{r}
+lm1<-lm(Proportion.Hatched~Stimulus, data=Experiment2)
+lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+summary(lm2)
+cld(lm2) 
+```
+
+#Exp 3
+```{r}
+Exp3Table<-
+  Experiment3 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(Exp3Table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+ggplot(Experiment3, aes(x=as.factor(Stimulus), y=Proportion.Hatched)) + 
+  geom_boxplot(data=Experiment3, size=2) +
+  ylab("Proportion of tray hatched\n")+
+  theme_bw(20) +
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+
+```{r}
+lm1<-lm(Proportion.Hatched~Stimulus, data=Experiment3)
+lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+summary(lm2)
+cld(lm2) 
+```
+
+#Exp 4
+```{r}
 gap.df<-read.csv(file="gap.csv")
+```
+
+```{r}
+str(gap.df)
+quantile(gap.df$PBKtimehr)
+quantile(gap.df$EP5)
+```
+```{r}
+PropHTable<-
+  gap.df %>%
+  group_by(Gap) %>%
+  summarize(count = n(),
+            mean = mean(PropH),
+            SD = sd(PropH), 
+            SE = sd(PropH)/sqrt(n())
+            )
+#indivsperclutch$AgeGroup <- 5.2
+kable(PropHTable,title="Mean & SD & SE",digits=4)
 ```
 
 ```{r}
