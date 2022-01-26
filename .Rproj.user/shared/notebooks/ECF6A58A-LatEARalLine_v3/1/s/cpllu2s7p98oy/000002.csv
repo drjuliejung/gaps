@@ -1,0 +1,1 @@
+"0","playback.df$Stimulus_start_age <- 5 + playback.df$PBKhour/24 + playback.df$PBKmin/(24*60) + playback.df$PBKsec/(24*60*60) # Stimulus_start_age is in days"

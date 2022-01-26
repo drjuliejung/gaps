@@ -1,0 +1,5 @@
+"0","make_hatching_plot_df <- data.frame(NumH = NumH_list, PropH = PropH_list, LtoH = latencies_min)
+"
+"2","Error in data.frame(NumH = NumH_list, PropH = PropH_list, LtoH = latencies_min) : 
+  object 'NumH_list' not found
+"

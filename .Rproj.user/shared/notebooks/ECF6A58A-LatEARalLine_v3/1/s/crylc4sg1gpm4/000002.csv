@@ -1,0 +1,1 @@
+"0","playback.df$Stage_average <- (playback.df$Stage1 + playback.df$Stage2 + playback.df$Stage3)/3"

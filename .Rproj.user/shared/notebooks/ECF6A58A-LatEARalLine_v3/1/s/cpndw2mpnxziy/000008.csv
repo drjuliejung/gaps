@@ -1,0 +1,9 @@
+"0","tab_df(tray_table,
+       title = ""Tray Table"",
+       file=""Desktop/tray_table.doc""
+       )
+"
+"2","cannot open file 'Desktop/tray_table.doc': No such file or directory"
+"2","Error in file(file, ifelse(append, ""a"", ""w"")) : 
+  cannot open the connection
+"

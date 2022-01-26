@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1531501705889.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "440262019",
+    "id" : "32DD6BF6",
+    "lastKnownWriteTime" : 1532638174,
+    "last_content_update" : 1532638174028,
+    "path" : "~/Documents/GitHub/gaps/gaps.Rmd",
+    "project_path" : "gaps.Rmd",
+    "properties" : {
+        "chunk_output_type" : "console",
+        "cursorPosition" : "481,0",
+        "docOutlineSize" : "143.9422675627906",
+        "docOutlineVisible" : "1",
+        "scrollLine" : "472",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

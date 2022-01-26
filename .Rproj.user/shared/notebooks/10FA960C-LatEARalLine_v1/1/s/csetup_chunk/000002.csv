@@ -1,0 +1,3 @@
+"0","rm(list=ls()) #clear environment"
+"0","setwd('/Users/juliejung/Desktop/GitHub/LatEARalLine') "
+"2","The working directory was changed to /Users/juliejung/Desktop/Github/LatEARalLine inside a notebook chunk. The working directory will be reset when the chunk is finished running. Use the knitr root.dir option in the setup chunk to change the working directory for notebook chunks."

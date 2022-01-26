@@ -1,0 +1,806 @@
+---
+title: "gaps"
+author: "Julie Jung"
+date: "July 13, 2018"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+Data analysis from gap experiment (conducted 2013 to 2017)
+
+```{r}
+setwd('/Users/juliejung/Documents/GitHub/gaps') 
+```
+
+```{r, warnings=F, echo=T, results='hide'}
+library(R.matlab)
+library(ggplot2)
+library(MASS)
+library(multcomp)
+library("stargazer")
+library("knitr")
+library("dplyr")
+library(sciplot) 
+library(aod)
+library(lme4)
+```
+#trying to read hatching times from .mat files
+
+```{r}
+
+#hatching times for stimulus 16 (control), experiment 1
+hatching_times_16_1 <- readMat("/Users/juliejung/Documents/GitHub/gaps/hatchingtimes(_stimulus_experiment)/gap_ms_matlab_code/hatching_times_16_1.mat")
+
+# 11 trials - per stimulus, per experiment
+
+#hatching times for stimulus 16 (control), experiment 2
+hatching_times_16_2 <- readMat("/Users/juliejung/Documents/GitHub/gaps/hatchingtimes(_stimulus_experiment)/gap_ms_matlab_code/hatching_times_16_2.mat")
+
+
+## this is tricky! --> easier to do in matlab!
+#I would like to wrap my head around what this matrix of values IS / how i would go about plotting from it. 
+```
+
+#Hatching Data: 
+
+Exps 1-3
+```{r}
+hatching_data<-read.csv(file="hatching_data.csv")
+```
+
+Subset out the test data
+```{r}
+subset_hatching <- subset(hatching_data, hatching_data$Subset.Hatching.Data=="Data")
+str(subset_hatching) 
+
+#subset_hatching_times <- subset(hatching_data, hatching_data$Subset.Hatching.Times.Data=="Data")
+```
+
+Split into Experiments 1-3
+```{r}
+Experiment1 <- subset(hatching_data, hatching_data$Experiment==1, na.rm=T)
+Experiment2 <- subset(hatching_data, hatching_data$Experiment==2, na.rm=T)
+Experiment3 <- subset(hatching_data, hatching_data$Experiment==3, na.rm=T)
+```
+
+#Exp 1
+
+```{r}
+Exp1Table<-
+  Experiment1 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(Exp1Table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+hist(Experiment1$Proportion.Hatched)
+shapiro.test(Experiment1$Proportion.Hatched) #P<<<0.05, so super non-normal and overdispersed binomial data
+```
+
+Fits the beta-binomial model and the chance-corrected beta-binomial model to (over-dispersed) binomial data.
+```{r}
+#betabin in package aod
+bb0<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1)
+bb1<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment1)
+# ~1 is to factor for overdispersion
+summary(bb1) #phi.(intercept) is a value for overdispersion, which is not actually that bad... 
+anova(bb0, bb1) #likelihood comparisons ### SUPER significant stimulus effect IN GENERAL 
+#### so significant that the P value is 0??
+
+bb16v17<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1[Experiment1$Stimulus=="16" | Experiment1$Stimulus=="17",])
+bb17v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment1[Experiment1$Stimulus=="16" | Experiment1$Stimulus=="17",])
+anova(bb16v17,bb17v16) #stim 16 and 17 are significantly different
+
+bb16v21<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1[Experiment1$Stimulus=="16" | Experiment1$Stimulus=="21",])
+bb21v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment1[Experiment1$Stimulus=="16" | Experiment1$Stimulus=="21",])
+anova(bb16v21,bb21v16) #stim 16 and 21 are significantly different
+
+bb16v22<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1[Experiment1$Stimulus=="16" | Experiment1$Stimulus=="22",])
+bb22v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment1[Experiment1$Stimulus=="16" | Experiment1$Stimulus=="22",])
+anova(bb16v22,bb22v16) #stim 16 and 22 are significantly different
+
+bb17v21<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1[Experiment1$Stimulus=="17" | Experiment1$Stimulus=="21",])
+bb21v17<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment1[Experiment1$Stimulus=="17" | Experiment1$Stimulus=="21",])
+anova(bb17v21,bb21v17) #stim 17 and 21 are NOT significantly different
+
+bb17v22<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1[Experiment1$Stimulus=="17" | Experiment1$Stimulus=="22",])
+bb22v17<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment1[Experiment1$Stimulus=="17" | Experiment1$Stimulus=="22",])
+anova(bb17v22,bb22v17) #stim 17 and 22 are significantly different
+
+bb21v22<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1[Experiment1$Stimulus=="21" | Experiment1$Stimulus=="22",])
+bb22v21<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment1[Experiment1$Stimulus=="21" | Experiment1$Stimulus=="22",])
+anova(bb21v22,bb22v21) #stim 21 and 22 are significantly different
+
+#grouped comparison (stim 21 and 17 vs. stim 16 and 22)
+Experiment1$Group <- ifelse(Experiment1$Stimulus =="16" | Experiment1$Stimulus == "22", "High", "Low")
+
+bbHighvLow<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment1)
+bbLowvHigh<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Group, ~1, data=Experiment1)
+anova(bbHighvLow,bbLowvHigh) #these groups are significantly different
+#should perform a bonferroni correction - it's very conservative. or less conservative one - benjamin. 
+#### COULD APPLY THIS MANUAL COMPARISON TO the binomial glmm strategy (for example, with TacMo data)
+```
+Relevel the stimuli
+```{r}
+summary(Experiment1$Stimulus)
+Experiment1$Stimulus<-factor(Experiment1$Stimulus, c("21","17","16", "22"))
+```
+
+```{r}
+ggplot(Experiment1, aes(x=as.factor(Stimulus), y=Proportion.Hatched)) + 
+  geom_boxplot(data=Experiment1, size=1) +
+  scale_y_continuous(limits = c(0, 1)) +
+  ylab("Proportion hatched\n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+The dunn.test is a nonparametric alternative to tukey/ multiple comparisons. 
+```{r}
+#install.packages("dunn.test")
+#library(dunn.test)
+
+#dunn.test(Experiment1$Proportion.Hatched, Experiment1$Stimulus, method = "bonferroni")
+```
+
+```{r}
+#lm1<-lm(Proportion.Hatched~Stimulus, data=Experiment1)
+#lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+#summary(lm2) #ignore summary for lm1 
+##bonferroni correction OR single step adjustment - penalized for the fact that you're doing multiple comparisons. 
+#cld(lm2) #compact letter display
+```
+
+#Exp 2
+```{r}
+Exp2Table<-
+  Experiment2 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(Exp2Table,title="Mean & SD & SE",digits=4)
+```
+
+Relevel the stimuli
+```{r}
+Experiment2$Stimulus<-factor(Experiment2$Stimulus, c("21","17","16", "27", "28"))
+```
+
+```{r}
+ggplot(Experiment2, aes(x=as.factor(Stimulus), y=Proportion.Hatched)) + 
+  geom_boxplot(data=Experiment2, size=1) +
+    scale_y_continuous(limits = c(0, 1)) +
+  ylab("Proportion hatched\n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+```{r}
+hist(Experiment2$Proportion.Hatched)
+shapiro.test(Experiment2$Proportion.Hatched) #P<<<0.05, so super non-normal and overdispersed binomial data
+```
+
+Fits the beta-binomial model and the chance-corrected beta-binomial model to (over-dispersed) binomial data.
+```{r}
+#betabin in package aod
+bb0<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2)
+bb1<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2)
+# ~1 is to factor for overdispersion
+summary(bb1) #phi.(intercept) is a value for overdispersion, which is not actually that bad... 
+anova(bb0, bb1) #likelihood comparisons ### SUPER significant stimulus effect IN GENERAL 
+#### so significant that the P value is 0??
+
+bb16v17<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="17",])
+bb17v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="17",])
+anova(bb16v17,bb17v16) #stim 16 and 17 are significantly different
+
+bb16v21<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="21",])
+bb21v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="21",])
+anova(bb16v21,bb21v16) #stim 16 and 21 are significantly different
+
+bb16v27<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="27",])
+bb27v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="27",])
+anova(bb16v27,bb27v16) #stim 16 and 27 are NOT significantly different
+
+bb17v21<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="17" | Experiment2$Stimulus=="21",])
+bb21v17<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="17" | Experiment2$Stimulus=="21",])
+anova(bb17v21,bb21v17) #stim 17 and 21 are NOT significantly different
+
+bb17v27<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="17" | Experiment2$Stimulus=="27",])
+bb27v17<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="17" | Experiment2$Stimulus=="27",])
+anova(bb17v27,bb27v17) #stim 17 and 27 are significantly different
+
+bb21v27<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="21" | Experiment2$Stimulus=="27",])
+bb27v21<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="21" | Experiment2$Stimulus=="27",])
+anova(bb21v27,bb27v21) #stim 21 and 22 are significantly different
+
+bb16v28<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="28",])
+bb28v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="16" | Experiment2$Stimulus=="28",])
+anova(bb16v28,bb28v16) #stim 16 and 27 are NOT significantly different
+
+bb17v28<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="17" | Experiment2$Stimulus=="28",])
+bb28v17<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="17" | Experiment2$Stimulus=="28",])
+anova(bb17v28,bb28v17) #stim 17 and 28 are NOT significantly different
+
+bb21v28<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="21" | Experiment2$Stimulus=="28",])
+bb28v21<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="21" | Experiment2$Stimulus=="28",])
+anova(bb21v28,bb28v21) #stim 21 and 28 are significantly different
+
+bb27v28<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2[Experiment2$Stimulus=="27" | Experiment2$Stimulus=="28",])
+bb28v27<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment2[Experiment2$Stimulus=="27" | Experiment2$Stimulus=="28",])
+anova(bb27v28,bb28v27) #stim 27 and 28 are NOT significantly different
+
+
+#grouped comparison (stim 21 and 17 vs. others)
+Experiment2$Group <- ifelse(Experiment2$Stimulus =="21" | Experiment2$Stimulus == "17", "Low", "High")
+
+bbHighvLow<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment2)
+bbLowvHigh<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Group, ~1, data=Experiment2)
+anova(bbHighvLow,bbLowvHigh) #these groups are significantly different
+
+#should perform a bonferroni correction - it's very conservative. or less conservative one - benjamin. 
+#### COULD APPLY THIS MANUAL COMPARISON TO the binomial glmm strategy (for example, with TacMo data)
+```
+
+```{r}
+#lm1<-lm(Proportion.Hatched~Stimulus, data=Experiment2)
+#lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+#summary(lm2)
+#cld(lm2) 
+```
+
+#Exp 3
+```{r}
+Exp3Table<-
+  Experiment3 %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(Exp3Table,title="Mean & SD & SE",digits=4)
+```
+
+Relevel the stimuli
+```{r}
+Experiment3$Stimulus<-factor(Experiment3$Stimulus, c("16","30","31", "32"))
+```
+
+```{r}
+ggplot(Experiment3, aes(x=as.factor(Stimulus), y=Proportion.Hatched)) + 
+  geom_boxplot(data=Experiment3, size=1) +
+    scale_y_continuous(limits = c(0, 1)) +
+  ylab("Proportion hatched\n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+```{r}
+hist(Experiment3$Proportion.Hatched)
+shapiro.test(Experiment3$Proportion.Hatched) #P<<<0.07, so just barely normal--> can use a tukey test if we want
+```
+
+Fits the beta-binomial model and the chance-corrected beta-binomial model to (over-dispersed) binomial data.
+```{r}
+#betabin in package aod
+bb0<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment3)
+bb1<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment3)
+# ~1 is to factor for overdispersion
+summary(bb1) #phi.(intercept) is a value for overdispersion, which is not actually that bad... 
+anova(bb0, bb1) #likelihood comparisons ### SUPER significant stimulus effect IN GENERAL 
+#### so significant that the P value is 0??
+
+bb16v30<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment3[Experiment3$Stimulus=="16" | Experiment3$Stimulus=="30",])
+bb30v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment3[Experiment3$Stimulus=="16" | Experiment3$Stimulus=="30",])
+anova(bb16v30,bb30v16) #stim 16 and 30 are NOT significantly different
+
+bb16v31<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment3[Experiment3$Stimulus=="16" | Experiment3$Stimulus=="31",])
+bb31v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment3[Experiment3$Stimulus=="16" | Experiment3$Stimulus=="31",])
+anova(bb16v31,bb31v16) #stim 16 and 31 are NOT significantly different
+
+bb16v32<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment3[Experiment3$Stimulus=="16" | Experiment3$Stimulus=="32",])
+bb32v16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment3[Experiment3$Stimulus=="16" | Experiment3$Stimulus=="32",])
+anova(bb16v32,bb32v16) #stim 16 and 27 are NOT significantly different
+
+bb30v31<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment3[Experiment3$Stimulus=="30" | Experiment3$Stimulus=="31",])
+bb31v30<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment3[Experiment3$Stimulus=="30" | Experiment3$Stimulus=="31",])
+anova(bb30v31,bb31v30) #stim 30 and 31 are NOT significantly different
+
+bb30v32<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment3[Experiment3$Stimulus=="30" | Experiment3$Stimulus=="32",])
+bb32v30<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment3[Experiment3$Stimulus=="30" | Experiment3$Stimulus=="32",])
+anova(bb30v32,bb32v30) #stim 30 and 32 are NOT significantly different
+
+bb31v32<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=Experiment3[Experiment3$Stimulus=="31" | Experiment3$Stimulus=="32",])
+bb32v31<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~Stimulus, ~1, data=Experiment3[Experiment3$Stimulus=="31" | Experiment3$Stimulus=="32",])
+anova(bb31v32,bb32v31) #stim 31 and 32 are NOT significantly different
+
+#should perform a bonferroni correction - it's very conservative. or less conservative one - benjamin. 
+#### COULD APPLY THIS MANUAL COMPARISON TO the binomial glmm strategy (for example, with TacMo data)
+```
+
+```{r}
+lm1<-lm(Proportion.Hatched~Stimulus, data=Experiment3)
+lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+summary(lm2)
+cld(lm2) 
+```
+
+#compare s3 across the three experiments
+
+Combine these three groups: 
+s3 (s16) from Exp 1
+s3 (s16) from Exp 2
+s3 (s16) from Exp 3
+
+```{r}
+s16Exp1 <- subset(Experiment1, Experiment1$Stimulus==16, na.rm=T)
+s16Exp1$Exp<- 1
+s16Exp2 <- subset(Experiment2, Experiment2$Stimulus==16, na.rm=T)
+s16Exp2$Exp<- 2
+s16Exp3 <- subset(Experiment3, Experiment3$Stimulus==16, na.rm=T)
+s16Exp3$Exp<- 3
+s16 <- rbind(s16Exp1, s16Exp2, s16Exp3)
+
+S16Table<-
+  s16 %>%
+  group_by(Exp) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(S16Table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+hist(s16$Proportion.Hatched)
+shapiro.test(s16$Proportion.Hatched) #P>0.05, so normal and we can use tukey test
+```
+
+```{r}
+ggplot(s16, aes(x=as.factor(Exp), y=Proportion.Hatched)) + 
+  geom_boxplot(data=s16, size=2) +
+  ylab("Proportion hatched\n")+
+  theme_bw(20) +
+  xlab("\n Experiment")+
+  theme(legend.position="none")
+```
+
+```{r}
+s16$Exp<-as.factor(s16$Exp)
+lm1<-lm(Proportion.Hatched~Exp, data=s16)
+lm2<-glht(lm1, linfct=mcp(Exp="Tukey"))
+summary(lm2)
+cld(lm2) 
+```
+The three sets of S3 across the three experiments did not significantly differ from each other in proportion hatched. 
+
+#compare (combined s3) results vs. (combined s4 and s7)
+
+Combine these three groups: 
+s3 (s16) from Exp 1
+s3 (s16) from Exp 2
+s3 (s16) from Exp 3
+
+Combine these two groups: 
+s4 (s22) from Exp 1
+s7 (s30) from Exp 3
+```{r}
+s16Exp1 <- subset(Experiment1, Experiment1$Stimulus==16, na.rm=T)
+s16Exp2 <- subset(Experiment2, Experiment2$Stimulus==16, na.rm=T)
+s16Exp3 <- subset(Experiment3, Experiment3$Stimulus==16, na.rm=T)
+s16 <- rbind(s16Exp1, s16Exp2, s16Exp3)
+s16$stimgroup<-"stim16"
+
+s22Exp1 <- subset(Experiment1, Experiment1$Stimulus==22, na.rm=T)
+s30Exp3 <- subset(Experiment3, Experiment3$Stimulus==30, na.rm=T)
+gap30 <- rbind(s22Exp1, s30Exp3)
+gap30$stimgroup<-"gap30"
+
+lookatgap<-rbind(s16,gap30)
+  
+CombinedGapTable<-
+  lookatgap %>%
+  group_by(stimgroup) %>%
+  summarize(count = n(),
+            mean = mean(Proportion.Hatched),
+            SD = sd(Proportion.Hatched), 
+            SE = sd(Proportion.Hatched)/sqrt(n())
+            )
+kable(CombinedGapTable,title="Mean & SD & SE",digits=4)
+
+```
+
+```{r}
+hist(lookatgap$Proportion.Hatched)
+shapiro.test(lookatgap$Proportion.Hatched) #P>0.05, so normal and we can use tukey test
+```
+
+```{r}
+ggplot(lookatgap, aes(x=as.factor(stimgroup), y=Proportion.Hatched)) + 
+  geom_boxplot(data=lookatgap, size=2) +
+  ylab("Proportion hatched\n")+
+  theme_bw(20) +
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+```{r}
+lookatgap$stimgroup<-as.factor(lookatgap$stimgroup)
+lm0<-lm(Proportion.Hatched~1, data=lookatgap)
+lm1<-lm(Proportion.Hatched~stimgroup, data=lookatgap)
+
+anova(lm0,lm1)
+#lm2<-glht(lm1, linfct=mcp(stimgroup="Tukey"))
+#summary(lm2)
+#cld(lm2) 
+```
+Fits the beta-binomial model and the chance-corrected beta-binomial model to (over-dispersed) binomial data.
+```{r}
+#betabin in package aod
+bb0<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=lookatgap)
+bb1<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~stimgroup, ~1, data=lookatgap)
+# ~1 is to factor for overdispersion
+summary(bb1) #phi.(intercept) is a value for overdispersion, which is not actually that bad... 
+anova(bb0, bb1) #likelihood comparisons ### SUPER significant stimulus effect IN GENERAL 
+#### so significant that the P value is 0??
+
+bbGap30vs16<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~1, ~1, data=lookatgap[lookatgap$stimgroup=="gap30" | lookatgap$stimgroup=="stim16",])
+bbs16vGap30<-betabin(cbind(Hatched.during.Playback, Initial.Count-Hatched.during.Playback)~stimgroup, ~1, data=lookatgap[lookatgap$stimgroup=="gap30" | lookatgap$stimgroup=="stim16",])
+anova(bbGap30vs16,bbs16vGap30) #
+```
+
+#Exp 4
+```{r}
+gap.df<-read.csv(file="gap.csv")
+```
+
+```{r}
+str(gap.df)
+quantile(gap.df$AvgStage)
+quantile(gap.df$PBKtimehr)
+quantile(gap.df$EP5)
+```
+
+```{r}
+PropHTable<-
+  gap.df %>%
+  group_by(Gap) %>%
+  summarize(count = n(),
+            mean = mean(PropH),
+            SD = sd(PropH), 
+            SE = sd(PropH)/sqrt(n())
+            )
+#indivsperclutch$AgeGroup <- 5.2
+kable(PropHTable,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+hist(gap.df$PropH)
+shapiro.test(gap.df$PropH) #P<<<0.05, so not normal - should use beta binom
+```
+
+```{r}
+ggplot(gap.df, aes(x=as.factor(Gap), y=PropH)) + 
+  geom_boxplot(data=gap.df, size=1) +
+    scale_y_continuous(limits = c(0, 1)) +
+  ylab("Proportion of tray hatched\n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Gap length (sec)")+
+  theme(legend.position="none")
+
+```
+
+
+Fits the beta-binomial model and the chance-corrected beta-binomial model to (over-dispersed) binomial data.
+```{r}
+#betabin in package aod
+bb0<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df)
+bb1<-betabin(cbind(NumHat, EP5-NumHat)~Gap, ~1, data=gap.df)
+# ~1 is to factor for overdispersion
+summary(bb1) #phi.(intercept) is a value for overdispersion, which is not actually that bad... 
+anova(bb0, bb1) #likelihood comparisons ### SUPER significant stimulus effect IN GENERAL 
+
+bb0v30<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df[gap.df$Gap=="0" | gap.df$Gap=="30",])
+bb30v0<-betabin(cbind(NumHat, EP5-NumHat)~Gap, ~1, data=gap.df[gap.df$Gap=="0" | gap.df$Gap=="30",])
+anova(bb0v30,bb30v0) #stim with gaps 0 and 30 are significantly different
+
+bb0v45<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df[gap.df$Gap=="0" | gap.df$Gap=="45",])
+bb45v0<-betabin(cbind(NumHat, EP5-NumHat)~Gap, ~1, data=gap.df[gap.df$Gap=="0" | gap.df$Gap=="45",])
+anova(bb0v45,bb45v0) #stim with gaps 0 and 45 are significantly different
+
+bb0v60<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df[gap.df$Gap=="0" | gap.df$Gap=="60",])
+bb60v0<-betabin(cbind(NumHat, EP5-NumHat)~Gap, ~1, data=gap.df[gap.df$Gap=="0" | gap.df$Gap=="60",])
+anova(bb0v60,bb60v0) #stim with gaps 0 and 60 are NOT significantly different
+
+bb30v45<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df[gap.df$Gap=="30" | gap.df$Gap=="45",])
+bb45v30<-betabin(cbind(NumHat, EP5-NumHat)~Gap, ~1, data=gap.df[gap.df$Gap=="30" | gap.df$Gap=="45",])
+anova(bb30v45,bb45v30) #stim with gaps 30 and 45 are NOT significantly different
+
+bb30v60<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df[gap.df$Gap=="30" | gap.df$Gap=="60",])
+bb60v30<-betabin(cbind(NumHat, EP5-NumHat)~Gap, ~1, data=gap.df[gap.df$Gap=="30" | gap.df$Gap=="60",])
+anova(bb30v60,bb60v30) #stim with gaps 30 and 45 are NOT significantly different
+
+bb45v60<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df[gap.df$Gap=="45" | gap.df$Gap=="60",])
+bb60v45<-betabin(cbind(NumHat, EP5-NumHat)~Gap, ~1, data=gap.df[gap.df$Gap=="45" | gap.df$Gap=="60",])
+anova(bb45v60,bb60v45) #stim with gaps 45 and 60 are significantly different **
+
+#grouped comparison (stim 30 and 40 vs. 0 and 60)
+gap.df$Group <- ifelse(gap.df$Gap =="0" | gap.df$Gap == "60", "Low", "High")
+
+bbHighvLow<-betabin(cbind(NumHat, EP5-NumHat)~1, ~1, data=gap.df)
+bbLowvHigh<-betabin(cbind(NumHat, EP5-NumHat)~Group, ~1, data=gap.df)
+anova(bbHighvLow,bbLowvHigh) #these groups are significantly different ***
+```
+
+```{r}
+#gap.df$Gap<-as.factor(gap.df$Gap)
+#lm1<-lm(PropH~Gap, data=gap.df)
+#lm2<-glht(lm1, linfct=mcp(Gap="Tukey"))
+#summary(lm2)
+#cld(lm2) 
+
+```
+
+#Hatching Times:
+
+Exps 1-3
+```{r}
+hatching_times<-read.csv(file="hatching_times.csv")
+```
+
+Split into Experiments 1-3
+```{r}
+Experiment1_times <- subset(hatching_times, hatching_times$Experiment==1, na.rm=T)
+Experiment2_times <- subset(hatching_times, hatching_times$Experiment==2, na.rm=T)
+Experiment3_times <- subset(hatching_times, hatching_times$Experiment==3, na.rm=T)
+```
+
+#Exp 1
+
+##midpoint hatching
+```{r}
+Exp1_times_table<-
+  Experiment1_times %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(X50..hatched..s.),
+            SD = sd(X50..hatched..s.), 
+            SE = sd(X50..hatched..s.)/sqrt(n())
+            )
+kable(Exp1_times_table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+hist(Experiment1_times$X50..hatched..s.)
+shapiro.test(Experiment1_times$X50..hatched..s.) #P<<<0.05, so non-normal and a bit overdispersed
+
+hist(log(Experiment1_times$X50..hatched..s.))
+shapiro.test(log(Experiment1_times$X50..hatched..s.)) #P>0.05 so normal if log transformed
+```
+
+```{r}
+#non-log scale
+ggplot(Experiment1_times, aes(x=as.factor(Stimulus), y=X50..hatched..s.)) + 
+  geom_boxplot(data=Experiment1_times, size=1) +
+  ylab("Time til half hatch (s) \n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+
+#log scale
+ggplot(Experiment1_times, aes(x=as.factor(Stimulus), y=log(X50..hatched..s.))) + 
+  geom_boxplot(data=Experiment1_times, size=1) +
+  ylab("Log time til half hatch (s) \n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+```{r}
+lm0<-lm(log(X50..hatched..s.)~1, data=Experiment1_times)
+lm1<-lm(log(X50..hatched..s.)~Stimulus, data=Experiment1_times)
+
+lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+summary(lm2) #ignore summary for lm1 
+#bonferroni correction OR single step adjustment - penalized for the fact that you're doing multiple comparisons. 
+cld(lm2) #compact letter display
+```
+
+In Experiment 1, the midpoint of hatching, defined as the point at which 50% of all eventually-hatched embryos in a clutch have hatched, was statistically different between S3 and S4, with S4 having a later midpoint. 
+
+However, when the long gap period in S4 is removed (28.5 s subtracted from all hatching times after the gap), the difference between the midpoints of S3 and S4 (no gaps) are no longer statistically significant
+
+##midrange hatching
+
+```{r}
+Exp1_times_table<-
+  Experiment1_times %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(diff.75..and.25.),
+            SD = sd(diff.75..and.25.), 
+            SE = sd(diff.75..and.25.)/sqrt(n())
+            )
+kable(Exp1_times_table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+hist(Experiment1_times$diff.75..and.25.)
+shapiro.test(Experiment1_times$diff.75..and.25.) #P<<<0.05, so non-normal and a bit overdispersed
+
+hist(log(Experiment1_times$diff.75..and.25.))
+shapiro.test(log(Experiment1_times$diff.75..and.25.)) #P<0.05 so still non-normal if log transformed
+```
+
+```{r}
+#non-log scale
+ggplot(Experiment1_times, aes(x=as.factor(Stimulus), y=diff.75..and.25.)) + 
+  geom_boxplot(data=Experiment1_times, size=1) +
+  ylab("Time til half hatch (s) \n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+Non parametric so i should use the wilcoxon rank sums test
+```{r}
+s3 <- subset(Experiment1_times, Experiment1_times$Stimulus=="S3-1", na.rm=T)
+s4 <-subset(Experiment1_times, Experiment1_times$Stimulus=="S4", na.rm=T)
+s4trunc <-subset(Experiment1_times, Experiment1_times$Stimulus=="S4-truncated", na.rm=T)
+
+(Experiment1_times$diff.75..and.25.)
+
+#t.test(as.numeric(hat$Developmental.Stage), as.numeric(nohat$Developmental.Stage), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+wtest<-wilcox.test(as.numeric(s3$diff.75..and.25.), as.numeric(s4$diff.75..and.25.), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+
+wtest<-wilcox.test(as.numeric(s4trunc$diff.75..and.25.), as.numeric(s4$diff.75..and.25.), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+
+The amount of elapsed between 25% hatched to 75% hatched for all eventually hatched hatched embryos in a clutch (25%–75% hatching period) was not statistically different for S3 and S4 (Wilcoxon test: Z = , P = ); i.e., embryos did not hatch more or less synchronously. As embryos did not start hatching until after the gap in S4, removing the gap from S4 made no difference in the comparison to S3 for the 25%–75% hatching timespan.
+
+#Exp 2
+
+##midpoint hatching
+```{r}
+Exp2_times_table<-
+  Experiment2_times %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(X50..hatched..s.),
+            SD = sd(X50..hatched..s.), 
+            SE = sd(X50..hatched..s.)/sqrt(n())
+            )
+kable(Exp2_times_table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+hist(Experiment2_times$X50..hatched..s.)
+shapiro.test(Experiment2_times$X50..hatched..s.) #P<<<0.05, so non-normal and a bit overdispersed
+
+hist(log(Experiment2_times$X50..hatched..s.))
+shapiro.test(log(Experiment2_times$X50..hatched..s.)) #P>0.05 so normal if log transformed
+```
+
+```{r}
+#non-log scale
+ggplot(Experiment2_times, aes(x=as.factor(Stimulus), y=X50..hatched..s.)) + 
+  geom_boxplot(data=Experiment2_times, size=1) +
+  ylab("Time til half hatch (s) \n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+
+#log scale
+ggplot(Experiment2_times, aes(x=as.factor(Stimulus), y=log(X50..hatched..s.))) + 
+  geom_boxplot(data=Experiment2_times, size=1) +
+  ylab("Log time til half hatch (s) \n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+```{r}
+lm0<-lm(log(X50..hatched..s.)~1, data=Experiment2_times)
+lm1<-lm(log(X50..hatched..s.)~Stimulus, data=Experiment2_times)
+
+lm2<-glht(lm1, linfct=mcp(Stimulus="Tukey"))
+summary(lm2) #ignore summary for lm1 
+#bonferroni correction OR single step adjustment - penalized for the fact that you're doing multiple comparisons. 
+cld(lm2) #compact letter display
+```
+
+In Experiment 1, the midpoint of hatching, defined as the point at which 50% of all eventually-hatched embryos in a clutch have hatched, was statistically different between S3 and S4, with S4 having a later midpoint. 
+
+However, when the long gap period in S4 is removed (28.5 s subtracted from all hatching times after the gap), the difference between the midpoints of S3 and S4 (no gaps) are no longer statistically significant
+
+##midrange hatching
+
+```{r}
+Exp1_times_table<-
+  Experiment1_times %>%
+  group_by(Stimulus) %>%
+  summarize(count = n(),
+            mean = mean(diff.75..and.25.),
+            SD = sd(diff.75..and.25.), 
+            SE = sd(diff.75..and.25.)/sqrt(n())
+            )
+kable(Exp1_times_table,title="Mean & SD & SE",digits=4)
+```
+
+```{r}
+hist(Experiment1_times$diff.75..and.25.)
+shapiro.test(Experiment1_times$diff.75..and.25.) #P<<<0.05, so non-normal and a bit overdispersed
+
+hist(log(Experiment1_times$diff.75..and.25.))
+shapiro.test(log(Experiment1_times$diff.75..and.25.)) #P<0.05 so still non-normal if log transformed
+```
+
+```{r}
+#non-log scale
+ggplot(Experiment1_times, aes(x=as.factor(Stimulus), y=diff.75..and.25.)) + 
+  geom_boxplot(data=Experiment1_times, size=1) +
+  ylab("Time til half hatch (s) \n")+
+  theme_bw(20) +
+    theme(panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank())+
+  xlab("\n Stimulus")+
+  theme(legend.position="none")
+```
+
+Non parametric so i should use the wilcoxon rank sums test
+```{r}
+s3 <- subset(Experiment1_times, Experiment1_times$Stimulus=="S3-1", na.rm=T)
+s4 <-subset(Experiment1_times, Experiment1_times$Stimulus=="S4", na.rm=T)
+s4trunc <-subset(Experiment1_times, Experiment1_times$Stimulus=="S4-truncated", na.rm=T)
+
+(Experiment1_times$diff.75..and.25.)
+
+#t.test(as.numeric(hat$Developmental.Stage), as.numeric(nohat$Developmental.Stage), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+wtest<-wilcox.test(as.numeric(s3$diff.75..and.25.), as.numeric(s4$diff.75..and.25.), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+
+wtest<-wilcox.test(as.numeric(s4trunc$diff.75..and.25.), as.numeric(s4$diff.75..and.25.), mu = 0, alt="two.sided", paired = F, conf.int=T, conf.level=0.99)
+qnorm(wtest$p.value) #z-value to report
+wtest
+```
+
+The amount of elapsed between 25% hatched to 75% hatched for all eventually hatched hatched embryos in a clutch (25%–75% hatching period) was not statistically different for S3 and S4 (Wilcoxon test: Z = , P = ); i.e., embryos did not hatch more or less synchronously. As embryos did not start hatching until after the gap in S4, removing the gap from S4 made no difference in the comparison to S3 for the 25%–75% hatching timespan.

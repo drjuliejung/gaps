@@ -1,0 +1,5 @@
+"0","my_spdf <- readOGR(dsn=path.expand(""C:/Users/juliejung/Downloads/ne_50m_playas""), layer=""ne_50m_playas"")
+"
+"2","Error in ogrInfo(dsn = dsn, layer = layer, encoding = encoding, use_iconv = use_iconv,  : 
+  Cannot open data source
+"

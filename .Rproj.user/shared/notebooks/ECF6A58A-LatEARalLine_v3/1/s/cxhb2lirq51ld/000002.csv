@@ -1,0 +1,5 @@
+"0","playback.df <- subset(all_data, Experiment==""Tray"")
+"
+"2","Error in subset(all_data, Experiment == ""Tray"") : 
+  object 'all_data' not found
+"

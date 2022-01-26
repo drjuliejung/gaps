@@ -1,0 +1,41 @@
+---
+title: "gsl_sampling"
+author: "Julie Jung"
+date: "7/20/2021"
+output: html_document
+---
+
+# LIBRARIES
+
+```{r load_packages, include=F}
+
+# set options
+options(stringsAsFactors = F)         # no automatic data transformation
+options("scipen" = 100, "digits" = 4) # suppress math annotation
+op <- options(gvis.plot.tag='chart')  # set gViz options
+# install libraries
+install.packages(c("OpenStreetMap", "DT", "RColorBrewer", "mapproj", "sf", "RgoogleMaps", 
+                   "scales", "rworldmap", "maps", "tidyverse", "rnaturalearth", 
+                   "rnaturalearthdata", "rgeos", "ggspatial", "maptools", "leaflet", "sf", 
+                   "tmap", "here", "rgdal", "scales"))
+# install package from github
+devtools::install_github("dkahle/ggmap", ref = "tidyup")
+```
+
+
+```{r}
+library(OpenStreetMap)
+GSLmap<-openmap(c(-113, -112), 
+                c(41,42), 
+                
+
+ggplot(data = world) +
+    geom_sf() +
+    coord_sf(xlim = c(-102.15, -74.12), ylim = c(7.65, 33.97), expand = FALSE)
+
+ggplot(data = world) +
+    geom_sf() +
+    coord_sf(xlim = c(-113, -112), ylim = c(41, 42))
+```
+## Read in lat and long data
+

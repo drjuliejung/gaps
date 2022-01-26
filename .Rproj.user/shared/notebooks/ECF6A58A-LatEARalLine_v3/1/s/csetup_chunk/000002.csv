@@ -1,0 +1,2 @@
+"0","#rm(list=ls()) #clear environment"
+"0","#setwd('/Users/juliejung/Desktop/GitHub/LatEARalLine') "
