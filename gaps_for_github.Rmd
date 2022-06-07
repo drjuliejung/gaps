@@ -10,7 +10,9 @@ editor_options:
   chunk_output_type: console
 ---
 
-Presented here is the data analysis from our gaps experiment, conducted 2013 to 2017 and submitted to Animal Cognition in 2022. 
+Presented here is the data analysis from our gaps experiment, conducted 2013 to 2017 and published in Animal Cognition in 2022. If any of this code and/or analysis proves helpful to you, please cite our paper: 
+
+Julie Jung, Ming Guo, Mark E. Crovella, J. Gregory McDaniel, and Karen M. Warkentin. Frog embryos use multiple levels of temporal pattern in risk assessment for vibration-cued escape hatching. Animal Cognition (2022). https://doi.org/10.1007/s10071-022-01634-4
 
 # load libraries
 
@@ -94,7 +96,7 @@ ggsave("~/Desktop/StimFig_v2.pdf",
 
 # stimulus fig (exp1)
 
-Note: The stimulus names in this file are slightly confusing and I apologize for that. It's because Ming Guo had different names for the stimuli initially (stim16 for base pattern, stim21 for primer only, etc.), and at first I renamed the stimuli letters (A-D for Experiment I) before deciding in the paper to have more descriptive names... I probably could have changed all the file names here but for fear of mucking something up accidentally I shall leave that up to you folks. 
+Note: The stimulus names in this file are slightly confusing and I apologize for that. It's because Ming Guo had different names for the stimuli initially (stim16 for base pattern, stim21 for primer only, etc.), and at first I renamed the stimuli letters (A-D for Experiment I) before deciding in the paper to have more descriptive names... I probably could have changed all the file names here but for fear of mucking something up accidentally I shall leave that up to you good folks. 
 
 ```{r}
 library(tuneR)
